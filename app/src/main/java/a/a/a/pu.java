@@ -7,6 +7,8 @@ import android.graphics.Bitmap;
 import android.graphics.PorterDuff;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -14,6 +16,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -63,6 +66,7 @@ public class pu extends qA {
     private FrManageImageListBinding binding;
     private String sc_id;
     private ArrayList<ProjectResourceBean> images;
+    private ArrayList<ProjectResourceBean> allImages;
     private MaterialCardView actionButtonContainer;
     private FloatingActionButton fab;
     private String projectImagesDirectory = "";
@@ -158,9 +162,10 @@ public class pu extends qA {
                     next.flipHorizontal = 1;
                 }
                 next.savedPos = 0;
-                images.add(next);
+                allImages.add(next);
             }
         }
+        images.addAll(allImages);
     }
 
     private void unselectAll() {
@@ -285,6 +290,24 @@ public class pu extends qA {
             sc_id = savedInstanceState.getString("sc_id");
             projectImagesDirectory = savedInstanceState.getString("dir_path");
             images = savedInstanceState.getParcelableArrayList("images");
+            allImages = savedInstanceState.getParcelableArrayList("allImages");
+        }
+        EditText search = binding.tiSearch.getEditText();
+        if (search != null) {
+            search.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    filter(s.toString());
+                }
+            });
         }
         // mkdirs
         new oB().f(projectImagesDirectory);
@@ -313,6 +336,7 @@ public class pu extends qA {
         binding = FrManageImageListBinding.inflate(inflater, container, false);
         setHasOptionsMenu(true);
         images = new ArrayList<>();
+        allImages = new ArrayList<>();
         binding.imageList.setHasFixedSize(true);
         binding.imageList.setLayoutManager(new GridLayoutManager(requireActivity(), ManageImageActivity.getImageGridColumnCount(requireContext())));
         adapter = new Adapter(binding.imageList);
@@ -361,7 +385,24 @@ public class pu extends qA {
         outState.putString("sc_id", sc_id);
         outState.putString("dir_path", projectImagesDirectory);
         outState.putParcelableArrayList("images", images);
+        outState.putParcelableArrayList("allImages", allImages);
         super.onSaveInstanceState(outState);
+    }
+
+    private void filter(String text) {
+        images.clear();
+        if (text.isEmpty()) {
+            images.addAll(allImages);
+        } else {
+            text = text.toLowerCase();
+            for (ProjectResourceBean item : allImages) {
+                if (item.resName.toLowerCase().contains(text)) {
+                    images.add(item);
+                }
+            }
+        }
+        adapter.notifyDataSetChanged();
+        updateGuideVisibility();
     }
 
     private void showImageDetailsDialog(ProjectResourceBean projectResourceBean) {
