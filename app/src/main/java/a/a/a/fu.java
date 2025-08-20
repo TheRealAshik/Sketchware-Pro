@@ -5,10 +5,13 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -55,6 +58,7 @@ public class fu extends qA implements View.OnClickListener {
 
     private FrManageImageListBinding binding;
     private ArrayList<ProjectResourceBean> collectionImages;
+    private ArrayList<ProjectResourceBean> allCollectionImages;
     private Adapter adapter;
     private String sc_id;
 
@@ -62,7 +66,9 @@ public class fu extends qA implements View.OnClickListener {
     private MaterialCardView layoutBtnImport;
 
     public void refreshData() {
-        collectionImages = Op.g().f();
+        allCollectionImages = Op.g().f();
+        collectionImages.clear();
+        collectionImages.addAll(allCollectionImages);
         adapter.notifyDataSetChanged();
         updateGuideVisibility();
     }
@@ -124,6 +130,23 @@ public class fu extends qA implements View.OnClickListener {
         super.onViewCreated(view, savedInstanceState);
         sc_id = savedInstanceState != null ? savedInstanceState.getString("sc_id")
                 : requireActivity().getIntent().getStringExtra("sc_id");
+        EditText search = binding.tiSearch.getEditText();
+        if (search != null) {
+            search.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    filter(s.toString());
+                }
+            });
+        }
         refreshData();
     }
 
@@ -147,6 +170,8 @@ public class fu extends qA implements View.OnClickListener {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FrManageImageListBinding.inflate(inflater, container, false);
+        collectionImages = new ArrayList<>();
+        allCollectionImages = new ArrayList<>();
         binding.imageList.setHasFixedSize(true);
         binding.imageList.setLayoutManager(new GridLayoutManager(requireActivity(), ManageImageActivity.getImageGridColumnCount(requireContext())));
         adapter = new Adapter();
@@ -163,6 +188,22 @@ public class fu extends qA implements View.OnClickListener {
     public void onSaveInstanceState(Bundle outState) {
         outState.putString("sc_id", sc_id);
         super.onSaveInstanceState(outState);
+    }
+
+    private void filter(String text) {
+        collectionImages.clear();
+        if (text.isEmpty()) {
+            collectionImages.addAll(allCollectionImages);
+        } else {
+            text = text.toLowerCase();
+            for (ProjectResourceBean item : allCollectionImages) {
+                if (item.resName.toLowerCase().contains(text)) {
+                    collectionImages.add(item);
+                }
+            }
+        }
+        adapter.notifyDataSetChanged();
+        updateGuideVisibility();
     }
 
     private class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
